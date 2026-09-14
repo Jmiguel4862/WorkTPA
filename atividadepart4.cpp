@@ -81,7 +81,7 @@ void adicionarAluno(Aluno *al) {
             delete al;
             return;
         }
-
+        
         a.totalColisoes++;
         tentativas++;
         if (tentativas >= TAMANHO_HASH_INICIAL) {
