@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <string.h>
+#include <iostream>
 
 //Exemplo do arquivo CSV que será lido
 //Matricula,CPF,Nome,Nota,Idade,Curso,Cidade
@@ -14,6 +15,8 @@
 // POR ENQUANTO, NÃO SE PREOCUPE COM CPFs REPETIDOS.
 // IMPLEMENTE EXCLUSAO E BUSCA POR NOME
 // CALCULE QUANTAS COLISOES ACONTECERAM NA INSERÇÃO
+
+
 
 
 struct Aluno{
@@ -42,96 +45,17 @@ void inicializa(){
     a.hash = new Aluno*[a.tamanhoAtual];
     a.hashOcupada = new bool[a.tamanhoAtual];
     for(int i=0; i<a.tamanhoAtual; i++){
+        a.hash[i] = NULL;
         a.hashOcupada[i] = false;
     }
 }
 
-// Função para ler arquivo CSV
-void lerArquivoCSV(const char* nomeArquivo) {
-    FILE* arquivo = fopen(nomeArquivo, "r");
-    if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo %s\n", nomeArquivo);
-        return;
-    }
-    char linha[300];
-    
-    printf("Iniciando leitura do arquivo CSV...\n");
-    
-    // Pular a primeira linha (cabeçalho)
-    if (fgets(linha, sizeof(linha), arquivo) == NULL) {
-        printf("Arquivo vazio ou erro na leitura\n");
-        fclose(arquivo);
-        return;
-    }
-    // Ler cada linha usando fscanf diretamente na struct
-    Aluno* novo;
-    while ((novo = new Aluno) != NULL) {
-        //%N significa que fará a leitura de até N caracteres, evitando overflow
-        //O [^caractere] é uma classe de caracteres negativa - significa "qualquer caractere EXCETO o especificado".
-        //É muito útil para parar a leitura quando encontrar um delimitador específico (como vírgula ou quebra de linha).
-        if (fscanf(arquivo, "%8[^,],%14[^,],%39[^,],%lf,%d,%39[^,],%39[^\n]\n", 
-                   novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
-            
-            //pega o endereço que deve ser inserido no vetor de alunos
-            adicionarAluno(0,novo);
-            //printf("Aluno adicionado: %s - %s\n", novo->matricula, novo->nome);
-            // Consumir a quebra de linha restante
-            //fgetc(arquivo);
-        } else {
-            // Se não conseguiu ler todos os campos, liberar memória e sair
-            delete novo;
-            break;
-        }
-    }
-    
-    fclose(arquivo);
-    printf("Leitura concluida. Total de alunos: %d\n", a[0].quantidade);
-}
-
-// Função para exibir todos os alunos
-void exibirAlunos() {
-    printf("\n=== LISTA DE ALUNOS ===\n");
-    Aluno* atual = a[0].inicio;
-    int contador = 1;
-    
-    while (atual != NULL) {
-        printf("Aluno %d:\n", contador);
-        printf("  Matricula: %s\n", atual->matricula);
-        printf("  CPF: %s\n", atual->cpf);
-        printf("  Nome: %s\n", atual->nome);
-        printf("  Nota: %.2f\n", atual->nota);
-        printf("  Idade: %d\n", atual->idade);
-        printf("  Curso: %s\n", atual->curso);
-        printf("  Cidade: %s\n", atual->cidade);
-        printf("  ---\n");
-        
-        atual = atual->prox;
-        contador++;
-    }
-    printf("Total: %d alunos\n\n", a[0].quantidade);
-}
-
-int calculoHash(char* nome){
-    //faça uma função com base nos caracteres do nome do aluno
-    // K -> a conta sobre os caracteres
-
-    // retornar o calculo
-    // K mod TAMANHO_HASH_INICIAL
-
-}
-
-int calculoH2(char* nome){
-    //faça uma função com base nos caracteres do nome do aluno
-    // K -> a conta sobre os caracteres
-
-    // retornar o calculo
-    // 1 + (K mod (TAMANHO_HASH_INICIAL - 1))
-}
-
-int calculoReHash(int resultadoCalculoAnterior, int resultadoH2){
-    return (resultadoCalculoAnterior + resultadoH2) % TAMANHO_HASH_INICIAL;
-}
-
+void adicionarAluno(Aluno * a);
+void lerArquivoCSV(const char* nomeArquivo);
+void exibirAlunos();
+int calculoHash(char* nome);
+int calculoH2(char* nome);
+int calculoReHash(int resultadoCalculoAnterior, int resultadoH2);
 
 int main(){
     inicializa();
@@ -162,3 +86,100 @@ int main(){
     system("pause");
     return 0;
 }
+
+
+void adicionarAluno(Aluno * al){
+    int h1 = calculoHash(al->nome), ind = h1 , count = 1;
+    while (!a.hashOcupada[ind])
+    {
+        ind = calculoReHash(h1, calculoH2(al->nome));
+        if (count < 100)
+        {
+            std::cout<<"\n Não tem mais espaços disponiveis";
+            return;
+        }
+        
+        count++;
+    }
+    a.hash[ind] = al;
+    a.hashOcupada[ind] = true;
+}
+
+// Função para ler arquivo CSV
+void lerArquivoCSV(const char* nomeArquivo) {
+    FILE* arquivo = fopen(nomeArquivo, "r");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo %s\n", nomeArquivo);
+        return;
+    }
+    char linha[300];
+    
+    printf("Iniciando leitura do arquivo CSV...\n");
+    
+    // Pular a primeira linha (cabeçalho)
+    if (fgets(linha, sizeof(linha), arquivo) == NULL) {
+        printf("Arquivo vazio ou erro na leitura\n");
+        fclose(arquivo);
+        return;
+    }
+    // Ler cada linha usando fscanf diretamente na struct
+    Aluno* novo;
+    while ((novo = new Aluno) != NULL) {
+        //%N significa que fará a leitura de até N caracteres, evitando overflow
+        //O [^caractere] é uma classe de caracteres negativa - significa "qualquer caractere EXCETO o especificado".
+        //É muito útil para parar a leitura quando encontrar um delimitador específico (como vírgula ou quebra de linha).
+        if (fscanf(arquivo, "%8[^,],%14[^,],%39[^,],%lf,%d,%39[^,],%39[^\n]\n", 
+                   novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
+            
+            //pega o endereço que deve ser inserido no vetor de alunos
+            adicionarAluno(novo);
+            //printf("Aluno adicionado: %s - %s\n", novo->matricula, novo->nome);
+            // Consumir a quebra de linha restante
+            //fgetc(arquivo);
+        } else {
+            // Se não conseguiu ler todos os campos, liberar memória e sair
+            delete novo;
+            break;
+        }
+    }
+    
+    fclose(arquivo);
+    printf("Leitura concluida. Total de alunos: %d\n", a.quantidade);
+}
+
+// Função para exibir todos os alunos
+void exibirAlunos() {
+    printf("\n=== LISTA DE ALUNOS ===\n");
+    int contador = 1;
+    
+    for(int i = 0; i < a.quantidade && a.hash[i] != NULL;i++) {
+        printf("Aluno %d:\n", contador);
+        printf("  Matricula: %s\n", a.hash[i]->matricula);
+        printf("  CPF: %s\n", a.hash[i]->cpf);
+        printf("  Nome: %s\n", a.hash[i]->nome);
+        printf("  Nota: %.2f\n", a.hash[i]->nota);
+        printf("  Idade: %d\n", a.hash[i]->idade);
+        printf("  Curso: %s\n", a.hash[i]->curso);
+        printf("  Cidade: %s\n", a.hash[i]->cidade);
+        printf("  ---\n");
+        contador++;
+    }
+    printf("Total: %d alunos\n\n", a.quantidade);
+}
+
+int calculoHash(char* nome){
+    int total = 1;
+    for(int i = 0; i < strlen(nome); i++)
+        total = total * nome[i];
+    return (total < 0)? -total: total;
+}
+
+int calculoH2(char* nome){
+    return calculoHash(nome) + 1;
+}
+
+int calculoReHash(int resultadoCalculoAnterior, int resultadoH2){
+    return (resultadoCalculoAnterior + resultadoH2) % TAMANHO_HASH_INICIAL;
+}
+
+
