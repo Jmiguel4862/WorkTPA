@@ -90,15 +90,22 @@ int main(){
 
 void adicionarAluno(Aluno * al){
     int h1 = calculoHash(al->nome), ind = h1 , count = 1;
-    while (!a.hashOcupada[ind])
+    //std::cout<<ind<<std:: endl;
+    while (a.hashOcupada[ind])
     {
-        ind = calculoReHash(h1, calculoH2(al->nome));
-        if (count < 100)
+        if (strcmp(a.hash[ind]->cpf , al->cpf) == 0)
         {
-            std::cout<<"\n Não tem mais espaços disponiveis";
+            std::cout<<"\n\n[ERRO] Aluno já cadastrado.\n"<<std::endl;
+            delete al;
             return;
         }
-        
+        if (count < TAMANHO_HASH_INICIAL)
+        {
+            std::cout<<"\n Não tem mais espaços disponiveis\n"<<std::endl;
+            delete al;
+            return;
+        }
+        ind = calculoReHash(ind, calculoH2(al->nome));
         count++;
     }
     a.hash[ind] = al;
@@ -153,7 +160,7 @@ void exibirAlunos() {
     int contador = 1;
     
     for(int i = 0; i < a.quantidade && a.hash[i] != NULL;i++) {
-        printf("Aluno %d:\n", contador);
+        printf("  Aluno %d:\n", contador);
         printf("  Matricula: %s\n", a.hash[i]->matricula);
         printf("  CPF: %s\n", a.hash[i]->cpf);
         printf("  Nome: %s\n", a.hash[i]->nome);
@@ -168,10 +175,10 @@ void exibirAlunos() {
 }
 
 int calculoHash(char* nome){
-    int total = 1;
+    size_t total = 1;
     for(int i = 0; i < strlen(nome); i++)
-        total = total * nome[i];
-    return (total < 0)? -total: total;
+        total = total * nome[i]; 
+    return total % TAMANHO_HASH_INICIAL;
 }
 
 int calculoH2(char* nome){
