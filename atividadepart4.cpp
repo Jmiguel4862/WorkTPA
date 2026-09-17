@@ -14,7 +14,7 @@ struct Aluno{
     char cidade[40];
 };
 
-#define TAMANHO_HASH_INICIAL 2000
+#define TAMANHO_HASH_INICIAL 1000
 struct Alunos{
     Aluno **hash;
     bool *hashOcupada;
@@ -63,12 +63,13 @@ void inicializa(){
 
 void adicionarAluno(Aluno *novo){
     int h1 = calculoHash(novo->nome), ind = h1;
+    int colidion = 0;
     if(a.quantidade == TAMANHO_HASH_INICIAL)
     {
-          std::cout<<"\n\n Memoria cheia\n"<<std::endl;
-          delete novo;
-          return;
-        }
+        std::cout<<"\n\n Memoria cheia\n"<<std::endl;
+        delete novo;
+        return;
+    }
     while (a.hashOcupada[ind])
     {
         if (novo->cpf == a.hash[ind]->cpf)
@@ -77,21 +78,26 @@ void adicionarAluno(Aluno *novo){
             delete novo;
             return;
         }
-        ind = calculoReHash(ind, calculoH2(novo->nome));
-        std::cout<<"\n Colição\n";
         std::cout<<ind<<std::endl;
+        ind = calculoReHash(ind, calculoH2(novo->nome));
+        colidion++;
+        /*if (colidion > 1000)
+        {
+            std::cout<<novo->nome;
+            return;
+        }*/
+        
     }
 
     a.hash[ind] = novo;
     a.hashOcupada[ind] = true;
     a.quantidade++;
     std::cout<<"\n\n outro aluno"<<std::endl;
+    std::cout<<"\ncolidion : "<< colidion<<std::endl;
     std::cout<< a.quantidade <<std::endl;
     std::cout<<ind<<std::endl;
 
-    system("pause");
-    
-
+    //system("pause");
 }
 
 // Função para ler arquivo CSV
@@ -161,14 +167,17 @@ void exibirAlunos() {
 int calculoHash(char* nome){
     int total = 1;
     for (int i = 0; i < strlen(nome); i++)
-        total = (total * nome[i])%TAMANHO_HASH_INICIAL;
-    return total;
+        total = (total + nome[i]);
+    if (total < 0) total = -total;
+    
+    return total % TAMANHO_HASH_INICIAL;
 }
 
 int calculoH2(char* nome){
-    int total = 0;
+    int total = 1;
     for(int i = 0; i < strlen(nome); i++) 
-        total = (total + nome[i]) % TAMANHO_HASH_INICIAL;
+        total = (total * nome[i]);
+    if (total < 0) total = -total;
     return ((calculoHash(nome) + total) +1) % (TAMANHO_HASH_INICIAL - 1);
 }
 
