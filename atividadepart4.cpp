@@ -1,8 +1,11 @@
+//Exemplo de código para utilizar contagem de tempo em execução de funções ou trechos de código
+//Neste exemplo também teremos leitura de arquivos CSV e manipulação de strings
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <string.h>
 #include <iostream>
+
 
 struct Aluno{
     char matricula[9];
@@ -14,7 +17,7 @@ struct Aluno{
     char cidade[40];
 };
 
-#define TAMANHO_HASH_INICIAL 1000
+#define TAMANHO_HASH_INICIAL 1500
 struct Alunos{
     Aluno **hash;
     bool *hashOcupada;
@@ -22,29 +25,46 @@ struct Alunos{
     int quantidade;
 };
 
+Alunos a;
+long int colidion = 0;
+
+//FUNÇÕES DO PROGRAMA
 void inicializa();
 void lerArquivoCSV(const char* nomeArquivo);
+void exibirAlunos();
 void adicionarAluno(Aluno *novo);
 void exibirAlunos();
 int calculoHash(char* nome);
 int calculoH2(char* nome);
 int calculoReHash(int resultadoCalculoAnterior, int resultadoH2);
 
-
-Alunos a;
-
-
 int main(){
     inicializa();
     printf("=== SISTEMA DE LEITURA DE ALUNOS CSV ===\n\n");
     Aluno* alunoTemp;
+    ///
     alunoTemp = new Aluno;
+    //...ja li o aluno.. e salvei no alunoTemp (aqui teve um new)
     a.hash[1548] = alunoTemp;
+
+
+
     time_t inicio, fim;
     inicio = clock();
+    // Ler arquivo CSV (você pode alterar o nome do arquivo) Essa função já cria a lista dinâmica com os alunos
     lerArquivoCSV("alunos.csv");
     fim = clock();
-    printf("Tempo de leitura: %d milissegundos\n", (int)fim - inicio);
+    //se eu quiser pegar como inteiro o valor do tempo
+
+    //se eu quiser pegar como double o valor do tempo
+    // double tempo2 = difftime(fim, inicio);
+    // printf("Tempo de leitura: %.2f segundos\n", tempo2);
+    // Exibir todos os alunos carregados
+    //exibirAlunos();
+    exibirAlunos();
+    printf("Tempo de leitura: %ld milissegundos\n", (int)fim - inicio);
+    printf("\nTotal de Colições: %ld  \n" ,colidion);
+    
     system("pause");
     return 0;
 }
@@ -56,48 +76,8 @@ void inicializa(){
     a.hashOcupada = new bool[a.tamanhoAtual];
     for(int i=0; i<a.tamanhoAtual; i++){
         a.hashOcupada[i] = false;
+        a.hash[i] = NULL;
     }
-}
-
-//Função para adiconar uma novo aluno
-
-void adicionarAluno(Aluno *novo){
-    int h1 = calculoHash(novo->nome), ind = h1;
-    int colidion = 0;
-    if(a.quantidade == TAMANHO_HASH_INICIAL)
-    {
-        std::cout<<"\n\n Memoria cheia\n"<<std::endl;
-        delete novo;
-        return;
-    }
-    while (a.hashOcupada[ind])
-    {
-        if (novo->cpf == a.hash[ind]->cpf)
-        {
-            std::cout<<"\n\n [ERRO Aluno ja cadastrado]\n"<<std::endl;
-            delete novo;
-            return;
-        }
-        std::cout<<ind<<std::endl;
-        ind = calculoReHash(ind, calculoH2(novo->nome));
-        colidion++;
-        /*if (colidion > 1000)
-        {
-            std::cout<<novo->nome;
-            return;
-        }*/
-        
-    }
-
-    a.hash[ind] = novo;
-    a.hashOcupada[ind] = true;
-    a.quantidade++;
-    std::cout<<"\n\n outro aluno"<<std::endl;
-    std::cout<<"\ncolidion : "<< colidion<<std::endl;
-    std::cout<< a.quantidade <<std::endl;
-    std::cout<<ind<<std::endl;
-
-    //system("pause");
 }
 
 // Função para ler arquivo CSV
@@ -142,45 +122,75 @@ void lerArquivoCSV(const char* nomeArquivo) {
     printf("Leitura concluida. Total de alunos: %d\n", a.quantidade);
 }
 
+void adicionarAluno(Aluno * novo){
+    long int hash = calculoHash(novo->nome);
+    if (a.quantidade == a.tamanhoAtual)
+    {
+        std::cout<< "\n [ERRO] Memoria cheia!!\n";
+        return;
+    }
+    
+    while (a.hashOcupada[hash]){
+        if (strcmp(novo->cpf, a.hash[hash]->cpf) == 0)
+        {
+            std::cout<< "\n [ERRO] Aluno ja cadastrado!!\n";
+            delete novo;
+        }
+        
+        hash = calculoReHash(hash, calculoH2(novo->nome));
+        colidion++;
+    }
+
+    a.hashOcupada[hash] = true;
+    a.hash[hash] = novo;
+    a.quantidade++;
+}
+
 // Função para exibir todos os alunos
 void exibirAlunos() {
     printf("\n=== LISTA DE ALUNOS ===\n");
     Aluno* atual;
-    int contador = 1;
+    int contador = 0;
     
-    for(int i = 0; i < TAMANHO_HASH_INICIAL; i++) {
-        atual = a.hash[i];
-        printf("Aluno %d:\n", contador);
-        printf("  Matricula: %s\n", atual->matricula);
-        printf("  CPF: %s\n", atual->cpf);
-        printf("  Nome: %s\n", atual->nome);
-        printf("  Nota: %.2f\n", atual->nota);
-        printf("  Idade: %d\n", atual->idade);
-        printf("  Curso: %s\n", atual->curso);
-        printf("  Cidade: %s\n", atual->cidade);
-        printf("  ---\n");
-        contador++;
+    for (int i = 0; i < a.tamanhoAtual; i++)
+     {
+        if(a.hashOcupada[i])
+        {
+            atual = a.hash[i];
+            printf("\nAluno : %d  ", contador);
+            printf("  Matricula: %s  ", atual->matricula);
+            printf("  CPF: %s  ", atual->cpf);
+            printf("  Nome: %s  ", atual->nome);
+            printf("  Nota: %.2f  ", atual->nota);
+            printf("  Idade: %d  ", atual->idade);
+            printf("  Curso: %s  ", atual->curso);
+            printf("  Cidade: %s  ", atual->cidade);
+            printf("  \n---\n");
+            contador++;
+        }
     }
     printf("Total: %d alunos\n\n", a.quantidade);
 }
 
 int calculoHash(char* nome){
-    int total = 1;
-    for (int i = 0; i < strlen(nome); i++)
-        total = (total + nome[i]);
-    if (total < 0) total = -total;
-    
-    return total % TAMANHO_HASH_INICIAL;
+    long int k = 0;
+    for (int i = 0; nome[i] != '\0';i++)
+        k = k * 31 + nome[i];
+    if(k < 0) k = -k;
+    return k % a.tamanhoAtual;
+
 }
 
 int calculoH2(char* nome){
-    int total = 1;
-    for(int i = 0; i < strlen(nome); i++) 
-        total = (total * nome[i]);
-    if (total < 0) total = -total;
-    return ((calculoHash(nome) + total) +1) % (TAMANHO_HASH_INICIAL - 1);
+    long int k = 0;
+    for(int i = 0; nome[i] != '\0';i++)
+        k = k * 33 + nome[i];
+    if(k < 0) k = -k;
+    return 1 + (k % a.tamanhoAtual - 1);
 }
 
 int calculoReHash(int resultadoCalculoAnterior, int resultadoH2){
-    return (resultadoCalculoAnterior + resultadoH2) % TAMANHO_HASH_INICIAL;
+    int finalresult = resultadoCalculoAnterior + resultadoH2;
+    if(finalresult < 0) finalresult = -finalresult; 
+    return finalresult % a.tamanhoAtual;
 }
