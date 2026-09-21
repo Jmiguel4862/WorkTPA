@@ -1,10 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <cstring>
-#include <iostream>
+#include <string.h>
 
-struct Aluno {
+struct Aluno{
     char matricula[9];
     char cpf[15];
     char nome[40];
@@ -14,133 +13,122 @@ struct Aluno {
     char cidade[40];
 };
 
-#define TAMANHO_HASH_INICIAL 2000000
+#define TAMANHO_HASH_INICIAL 1000000
 
-struct Alunos {
+struct Alunos{
     Aluno **hash;
     bool *hashOcupada;
-    bool *hashRemovida; // Para controle de lápides (tombstones) na exclusão
+    bool *hashRemovido; // Utilizado para controle de exclusão em endereçamento aberto
     int tamanhoAtual;
     int quantidade;
-    long long totalColisoes; // Contador de colisões
 };
 
 Alunos a;
+int colisoesTotais = 0;
 
-void inicializa() {
+void inicializa(){
     a.tamanhoAtual = TAMANHO_HASH_INICIAL;
     a.quantidade = 0;
-    a.totalColisoes = 0;
     a.hash = new Aluno*[a.tamanhoAtual];
     a.hashOcupada = new bool[a.tamanhoAtual];
-    a.hashRemovida = new bool[a.tamanhoAtual];
-    for (int i = 0; i < a.tamanhoAtual; i++) {
-        a.hash[i] = NULL;
+    a.hashRemovido = new bool[a.tamanhoAtual];
+    
+    for(int i = 0; i < a.tamanhoAtual; i++){
         a.hashOcupada[i] = false;
-        a.hashRemovida[i] = false;
+        a.hashRemovido[i] = false;
+        a.hash[i] = NULL;
     }
 }
 
-// Funções de Hash
-int calculoHash(const char* nome) {
-    unsigned long hash = 5381; // Algoritmo djb2 (reduz muito colisões de strings)
-    int c;
-    while ((c = *nome++)) {
-        hash = ((hash << 5) + hash) + c; 
+// Funções Hash baseadas nos caracteres do nome
+int calculoHash(char* nome){
+    unsigned long k = 0;
+    while (*nome) {
+        k = k * 31 + (unsigned char)(*nome);
+        nome++;
     }
-    return hash % TAMANHO_HASH_INICIAL;
+    return k % TAMANHO_HASH_INICIAL;
 }
 
-int calculoH2(const char* nome) {
-    int val = calculoHash(nome);
-    // Garante um salto ímpar e não nulo para percorrer toda a tabela
-    return 1 + (val % (TAMANHO_HASH_INICIAL - 1));
+int calculoH2(char* nome){
+    unsigned long k = 0;
+    while (*nome) {
+        k = k * 33 + (unsigned char)(*nome);
+        nome++;
+    }
+    return 1 + (k % (TAMANHO_HASH_INICIAL - 1));
 }
 
-int calculoReHash(int resultadoCalculoAnterior, int resultadoH2) {
+int calculoReHash(int resultadoCalculoAnterior, int resultadoH2){
     return (resultadoCalculoAnterior + resultadoH2) % TAMANHO_HASH_INICIAL;
 }
 
-// Inserção com contagem de colisões
-void adicionarAluno(Aluno *al) {
-    int h1 = calculoHash(al->nome);
-    int h2 = calculoH2(al->nome);
-    int ind = h1;
+// Função para adicionar aluno na tabela hash tratando colisões
+void adicionarAluno(Aluno* novo) {
+    int h1 = calculoHash(novo->nome);
+    int h2 = calculoH2(novo->nome);
+    int idx = h1;
     int tentativas = 0;
-    int primeiroLivre = -1;
 
-    while (a.hashOcupada[ind] || a.hashRemovida[ind]) {
-        // Se encontramos um slot marcado como removido, guardamos para reuso caso não achem duplicado
-        if (a.hashRemovida[ind] && primeiroLivre == -1) {
-            primeiroLivre = ind;
-        }
-
-        // Verifica duplicidade por CPF se o slot estiver ocupado ativamente
-        if (a.hashOcupada[ind] && strcmp(a.hash[ind]->cpf, al->cpf) == 0) {
-            std::cout << "[ERRO] Aluno com CPF " << al->cpf << " já cadastrado.\n";
-            delete al;
-            return;
-        }
-
-        a.totalColisoes++;
+    while (a.hashOcupada[idx]) {
+        colisoesTotais++;
         tentativas++;
-        if (tentativas >= TAMANHO_HASH_INICIAL) {
-            std::cout << "[ERRO] Tabela Hash cheia.\n";
-            delete al;
+        if (tentativas >= a.tamanhoAtual) {
+            printf("Erro: Tabela hash cheia!\n");
+            delete novo;
             return;
         }
-
-        ind = calculoReHash(ind, h2);
+        idx = calculoReHash(idx, h2);
     }
 
-    // Se passou por uma posição removida anteriormente, insere nela
-    int posicaoFinal = (primeiroLivre != -1) ? primeiroLivre : ind;
-
-    a.hash[posicaoFinal] = al;
-    a.hashOcupada[posicaoFinal] = true;
-    a.hashRemovida[posicaoFinal] = false;
+    a.hash[idx] = novo;
+    a.hashOcupada[idx] = true;
+    a.hashRemovido[idx] = false;
     a.quantidade++;
 }
 
-// Busca por Nome
-Aluno* buscarAlunoPorNome(const char* nome) {
-    int ind = calculoHash(nome);
+// Função de Busca por Nome
+Aluno* buscarAluno(char* nome) {
+    int h1 = calculoHash(nome);
     int h2 = calculoH2(nome);
+    int idx = h1;
     int tentativas = 0;
 
-    while (a.hashOcupada[ind] || a.hashRemovida[ind]) {
-        if (a.hashOcupada[ind] && strcmp(a.hash[ind]->nome, nome) == 0) {
-            return a.hash[ind];
+    while (a.hashOcupada[idx] || a.hashRemovido[idx]) {
+        if (a.hashOcupada[idx] && strcmp(a.hash[idx]->nome, nome) == 0) {
+            return a.hash[idx];
         }
         tentativas++;
-        if (tentativas >= TAMANHO_HASH_INICIAL) break;
-        ind = calculoReHash(ind, h2);
+        if (tentativas >= a.tamanhoAtual) break;
+        idx = calculoReHash(idx, h2);
     }
-    return NULL;
+    return NULL; // Não encontrado
 }
 
-// Exclusão por Nome
-bool excluirAlunoPorNome(const char* nome) {
-    int ind = calculoHash(nome);
+// Função de Exclusão por Nome
+bool excluirAluno(char* nome) {
+    int h1 = calculoHash(nome);
     int h2 = calculoH2(nome);
+    int idx = h1;
     int tentativas = 0;
 
-    while (a.hashOcupada[ind] || a.hashRemovida[ind]) {
-        if (a.hashOcupada[ind] && strcmp(a.hash[ind]->nome, nome) == 0) {
-            delete a.hash[ind];
-            a.hash[ind] = NULL;
-            a.hashOcupada[ind] = false;
-            a.hashRemovida[ind] = true; // Marca como removido (lápide)
+    while (a.hashOcupada[idx] || a.hashRemovido[idx]) {
+        if (a.hashOcupada[idx] && strcmp(a.hash[idx]->nome, nome) == 0) {
+            delete a.hash[idx];
+            a.hash[idx] = NULL;
+            a.hashOcupada[idx] = false;
+            a.hashRemovido[idx] = true; // Marca como removido (tombstone)
             a.quantidade--;
-            return true;
+            return true; // Excluído com sucesso
         }
         tentativas++;
-        if (tentativas >= TAMANHO_HASH_INICIAL) break;
-        ind = calculoReHash(ind, h2);
+        if (tentativas >= a.tamanhoAtual) break;
+        idx = calculoReHash(idx, h2);
     }
-    return false;
+    return false; // Não encontrado para exclusão
 }
 
+// Função para ler arquivo CSV
 void lerArquivoCSV(const char* nomeArquivo) {
     FILE* arquivo = fopen(nomeArquivo, "r");
     if (arquivo == NULL) {
@@ -151,16 +139,18 @@ void lerArquivoCSV(const char* nomeArquivo) {
     
     printf("Iniciando leitura do arquivo CSV...\n");
     
-    // Pular cabeçalho
+    // Pular a primeira linha (cabeçalho)
     if (fgets(linha, sizeof(linha), arquivo) == NULL) {
+        printf("Arquivo vazio ou erro na leitura\n");
         fclose(arquivo);
         return;
     }
-
+    
     Aluno* novo;
     while ((novo = new Aluno) != NULL) {
         if (fscanf(arquivo, "%8[^,],%14[^,],%39[^,],%lf,%d,%39[^,],%39[^\n]\n", 
                    novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
+            
             adicionarAluno(novo);
         } else {
             delete novo;
@@ -169,56 +159,56 @@ void lerArquivoCSV(const char* nomeArquivo) {
     }
     
     fclose(arquivo);
-    printf("Leitura concluida. Total de alunos cadastrados: %d\n", a.quantidade);
-    printf("Total de colisões durante a inserção: %lld\n", a.totalColisoes);
+    printf("Leitura concluida. Total de alunos inseridos: %d\n", a.quantidade);
+    printf("Total de colisoes registradas: %d\n", colisoesTotais);
 }
 
+// Função para exibir todos os alunos cadastrados na Hash
 void exibirAlunos() {
     printf("\n=== LISTA DE ALUNOS ===\n");
-    int exibidos = 0;
+    int contador = 1;
     
-    for (int i = 0; i < a.tamanhoAtual; i++) {
-        if (a.hashOcupada[i]) {
-            exibidos++;
-            printf("Aluno %d (Índice Hash %d):\n", exibidos, i);
-            printf("  Matricula: %s | Nome: %s | CPF: %s\n", a.hash[i]->matricula, a.hash[i]->nome, a.hash[i]->cpf);
-            printf("  Nota: %.2f | Idade: %d | Curso: %s | Cidade: %s\n", a.hash[i]->nota, a.hash[i]->idade, a.hash[i]->curso, a.hash[i]->cidade);
+    for(int i = 0; i < a.tamanhoAtual; i++){
+        if(a.hashOcupada[i] && a.hash[i] != NULL){
+            Aluno* atual = a.hash[i];
+            printf("Aluno %d (Posicao %d):\n", contador, i);
+            printf("  Matricula: %s\n", atual->matricula);
+            printf("  CPF: %s\n", atual->cpf);
+            printf("  Nome: %s\n", atual->nome);
+            printf("  Nota: %.2f\n", atual->nota);
+            printf("  Idade: %d\n", atual->idade);
+            printf("  Curso: %s\n", atual->curso);
+            printf("  Cidade: %s\n", atual->cidade);
             printf("  ---\n");
+            contador++;
         }
     }
-    printf("Total exibido: %d alunos\n\n", exibidos);
+    printf("Total exibido: %d alunos\n\n", a.quantidade);
 }
 
-int main() {
+int main(){
     inicializa();
     printf("=== SISTEMA DE LEITURA DE ALUNOS CSV ===\n\n");
 
-    clock_t inicio = clock();
+    time_t inicio, fim;
+    inicio = clock();
+    
+    // Ler arquivo CSV
     lerArquivoCSV("alunos.csv");
-    clock_t fim = clock();
+    
+    fim = clock();
 
-    double tempoMs = ((double)(fim - inicio) / CLOCKS_PER_SEC) * 1000.0;
-    printf("Tempo de leitura e inserção: %.2f ms\n\n", tempoMs);
-
-    // Teste de Busca
-    const char* nomeBusca = "Wallace Sampaio";
-    Aluno* achado = buscarAlunoPorNome(nomeBusca);
-    if (achado) {
-        printf("[BUSCA] Aluno encontrado: %s - %s (Nota: %.2f)\n", achado->matricula, achado->nome, achado->nota);
+    printf("Tempo de leitura e insercao: %d milissegundos\n", (int)(fim - inicio));
+    
+    // Exemplo de teste de busca
+    char nomeBusca[40] = "Wallace Sampaio";
+    Aluno* resBusca = buscarAluno(nomeBusca);
+    if(resBusca != NULL){
+        printf("\n[Busca] Aluno encontrado: %s | Curso: %s\n", resBusca->nome, resBusca->curso);
     } else {
-        printf("[BUSCA] Aluno '%s' não encontrado.\n", nomeBusca);
+        printf("\n[Busca] Aluno nao encontrado.\n");
     }
 
-    // Teste de Exclusão
-    if (excluirAlunoPorNome(nomeBusca)) {
-        printf("[EXCLUSÃO] Aluno '%s' removido com sucesso.\n", nomeBusca);
-    }
-
-    // Validação da Exclusão
-    achado = buscarAlunoPorNome(nomeBusca);
-    if (!achado) {
-        printf("[BUSCA] Confirmação: Aluno '%s' não existe mais na Hash.\n", nomeBusca);
-    }
-
+    system("pause");
     return 0;
 }
