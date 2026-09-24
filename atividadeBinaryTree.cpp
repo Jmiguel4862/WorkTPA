@@ -45,7 +45,7 @@ void cleanBuffer(char *c);
 void inicializa();
 void clean_tree(NoAluno *raiz);
 void adicionarAluno(Aluno* novo);
-void insertIntoTree(NoAluno *novo , NoAluno *raiz);
+void insertIntoTree(NoAluno *novo , NoAluno **raiz);
 void buscarAlunoPorNome();
 NoAluno *searchAlunoInTree(char *name , NoAluno *raiz);
 void lerArquivoCSV(const char* nomeArquivo);
@@ -63,12 +63,12 @@ int main(){
     // Ler arquivo CSV (você pode alterar o nome do arquivo) Essa função já cria a lista dinâmica com os alunos
     lerArquivoCSV("alunos.csv");
     fim = clock();
-    exibirAlunos();
+    //exibirAlunos();
     printf("\n\n");
     buscarAlunoPorNome();
     //se eu quiser pegar como inteiro o valor do tempo
 
-    printf("Tempo de leitura: %d milissegundos\n", (int)fim - inicio);
+    printf("Tempo de leitura: %ld milissegundos\n", (int)fim - inicio);
     //se eu quiser pegar como double o valor do tempo
     // double tempo2 = difftime(fim, inicio);
     // printf("Tempo de leitura: %.2f segundos\n", tempo2);
@@ -79,6 +79,8 @@ int main(){
     return 0;
 }
 
+
+//CONTEUDOS DAS FUNÇÕES
 void clsbuffer(){
     char c;
     while ((c = getchar()) != '\n' && c != EOF);
@@ -116,37 +118,43 @@ void adicionarAluno(Aluno* novo) {
     novoNodo->grau = 0;
     novoNodo->nivel = 0;
     novoNodo->altura = 0;
-    insertIntoTree(novoNodo, a.raiz);
+    insertIntoTree(novoNodo, &(a.raiz));
 }
 
-void insertIntoTree(NoAluno *novo , NoAluno *raiz){
-    if (raiz == NULL)
+void insertIntoTree(NoAluno *novo , NoAluno **raiz){
+    if (*raiz == NULL)
     {
-        if(novo->pai == NULL && novo->pai->grau == 0)
-            novo->pai->altura++;
-        printf("\n ----------\n");
-        novo->pai->grau++;
-        raiz == novo;
+        if(novo->pai != NULL)
+        {
+            if (novo->pai->grau == 0) novo->pai->altura++;
+            novo->pai->grau++;
+        }
+        *raiz = novo;
+        if(novo->nivel > a.nivelMaximo)
+            a.nivelMaximo = novo->nivel;
         a.quantidadeElementosDeAlunos++;
     }
     
     else 
     {
         novo->nivel++;
-        novo->pai = raiz;
-        if (strcmp(novo->aluno->nome , raiz->aluno->nome) < 0)
+        novo->pai = *raiz;
+        if (strcmp(novo->aluno->nome , (*raiz)->aluno->nome) == 0)
         {
-            printf("\n esquerda");
-            insertIntoTree(novo , raiz->esq);
-            if(raiz->altura == raiz->esq->altura)
-                raiz->altura++;
+            cout<<"[ERRO] - Aluno ja cadastrado"<<endl;
+            delete novo;
+        }
+        else if (strcmp( (*raiz)->aluno->nome , novo->aluno->nome) < 0)
+        {
+            insertIntoTree(novo , &((*raiz)->dir));
+            if((*raiz)->altura <= (*raiz)->dir->altura)
+                (*raiz)->altura++;
         }
         else
         {
-            printf("\n direita");
-            insertIntoTree(novo , raiz->dir);
-            if(raiz->altura == raiz->dir->altura) 
-                raiz->altura++;
+            insertIntoTree(novo , (&(*raiz)->esq));
+            if((*raiz)->altura <= (*raiz)->esq->altura) 
+                (*raiz)->altura++;
         }
 
     }
@@ -172,7 +180,7 @@ void buscarAlunoPorNome(){
     }
     else
     {
-        printf("\n\n [ERRO] - Aluno não encontrado");
+        printf("\n\n [ERRO] - Aluno não encontrado\n\n");
     }
 }
 
@@ -180,17 +188,17 @@ NoAluno *searchAlunoInTree(char *name , NoAluno *raiz){
     int val; 
     if(raiz == NULL)
         return NULL;
-    val = strcmp(raiz->aluno->nome , name) == 0;
+    val = strcmp(raiz->aluno->nome , name);
     if(val == 0)
         return raiz;
     if (val < 0)
-        return searchAlunoInTree(name, raiz->esq);
-    else
         return searchAlunoInTree(name, raiz->dir);
+    else
+        return searchAlunoInTree(name, raiz->esq);
 }
 
 // Função para ler arquivo CSV
-void lerArquivoCSV(const char* nomeArquivo) {
+void lerArquivoCSV(const char* nomeArquivo) { 
     FILE* arquivo = fopen(nomeArquivo, "r");
     if (arquivo == NULL) {
         printf("Erro ao abrir o arquivo %s\n", nomeArquivo);
@@ -234,9 +242,12 @@ void exibirAlunos() {
     printf("\n=== LISTA DE ALUNOS ===\n");
     listItensOfTree(a.raiz);
     printf("Total: %d alunos\n\n", a.quantidadeElementosDeAlunos);
+    printf("Nivel maximo: %d \n\n", a.nivelMaximo);
 }
 
 void listItensOfTree(NoAluno *current){
+    if(current == NULL)
+        return;
     if (current->dir != NULL)
         listItensOfTree(current->dir);
     if (current->esq != NULL)
