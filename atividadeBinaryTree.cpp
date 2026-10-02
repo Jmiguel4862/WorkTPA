@@ -43,7 +43,7 @@ struct Arvore{
 void clsbuffer();
 void cleanBuffer(char *c);
 void inicializa();
-void clean_tree(NoAluno *raiz);
+void clean_tree(NoAluno **raiz);
 void adicionarAluno(Aluno* novo);
 void insertIntoTree(NoAluno *novo , NoAluno **raiz);
 void buscarAlunoPorNome();
@@ -51,6 +51,7 @@ NoAluno *searchAlunoInTree(char *name , NoAluno *raiz);
 void lerArquivoCSV(const char* nomeArquivo);
 void exibirAlunos();
 void listItensOfTree(NoAluno *current);
+void balanceTree(NoAluno **raiz);
 // BASE PRIMARIA
 Arvore a;
 // FUNÇÃO DE EXECUÇÃO
@@ -69,6 +70,7 @@ int main(){
     //se eu quiser pegar como inteiro o valor do tempo
 
     printf("Tempo de leitura: %ld milissegundos\n", (int)fim - inicio);
+    printf("\n\n Maior altura: %d", a.nivelMaximo) ;
     //se eu quiser pegar como double o valor do tempo
     // double tempo2 = difftime(fim, inicio);
     // printf("Tempo de leitura: %.2f segundos\n", tempo2);
@@ -92,20 +94,20 @@ void cleanBuffer(char *c){
 }
 
 void inicializa(){
-    clean_tree(a.raiz);
+    clean_tree(&a.raiz);
     a.raiz = NULL;
     a.nivelMaximo = 0;
     a.quantidadeElementosDeAlunos = 0;
 }
 
-void clean_tree(NoAluno *raiz){
-    if (raiz == NULL)
+void clean_tree(NoAluno **raiz){
+    if (*raiz == NULL)
         return;
-    if (raiz->dir != NULL)
-        clean_tree(raiz->dir);
-    if (raiz->esq != NULL)
-        clean_tree(raiz->esq);
-    delete raiz;
+    if ((*raiz)->dir != NULL)
+        clean_tree(&(*raiz)->dir);
+    if ((*raiz)->esq != NULL)
+        clean_tree(&(*raiz)->esq);
+    delete *raiz;
 }
 // Trocar pra função generica recebendo a lista como
 // parametro
@@ -224,6 +226,7 @@ void lerArquivoCSV(const char* nomeArquivo) {
                    novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
             
             adicionarAluno(novo);
+            //balanceTree(&(a.raiz));
         } else {
             // Se não conseguiu ler todos os campos, liberar memória e sair
             delete novo;
@@ -260,4 +263,61 @@ void listItensOfTree(NoAluno *current){
     printf("  Curso: %s", current->aluno->curso);
     printf("  Cidade: %s", current->aluno->cidade);
     printf("  ---\n");
+}
+
+
+void RotationLeft(NoAluno**raiz){
+    NoAluno *h1 = *raiz, *h2 = (*raiz)->dir;
+    (*raiz) = h2;
+    h1->pai = h2;
+    h1->dir = h2->esq;
+    h1->altura--;
+    h2->esq = h1;
+}
+
+void RotationRight(NoAluno ** raiz){
+    NoAluno *h1 = *raiz, *h2 = (*raiz)->dir;
+    (*raiz) = h2;
+    h1->pai = h2;
+    h1->esq = h2->dir;
+    h1->altura--;
+    h2->dir = h1;
+}
+
+
+void balanceTree(NoAluno **raiz){
+    int dif;
+    if(*raiz == NULL)
+        return;
+    dif = (*raiz)->esq->altura - (*raiz)->dir->altura;
+    if ( dif > 1)
+    {
+        if ( (*raiz)->esq->esq->altura < (*raiz)->esq->dir->altura)
+        {
+            (*raiz)->esq->esq->altura++;
+            RotationLeft(&((*raiz)->esq));
+            balanceTree(raiz);
+        }
+        else
+        {
+            RotationRight(&((*raiz)->esq));
+            balanceTree(raiz);
+        }
+        
+    }
+    else if (dif < -1)
+    {
+        if ( (*raiz)->dir->esq->altura > (*raiz)->dir->dir->altura)
+        {
+            RotationRight(&((*raiz)->esq));
+            balanceTree(raiz);
+        }
+        else
+        {
+            RotationLeft(&((*raiz)->esq));
+            balanceTree(raiz);
+        }
+    }
+    balanceTree(&((*raiz)->dir));
+    balanceTree(&((*raiz)->esq));
 }
