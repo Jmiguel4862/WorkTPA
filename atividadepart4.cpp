@@ -17,7 +17,7 @@ struct Aluno{
     char cidade[40];
 };
 
-#define TAMANHO_HASH_INICIAL 1500
+#define TAMANHO_HASH_INICIAL 100
 struct Alunos{
     Aluno **hash;
     bool *hashOcupada;
@@ -25,13 +25,14 @@ struct Alunos{
     int quantidade;
 };
 
-Alunos a;
+Alunos *a = new Alunos;
 long int colidion = 0;
 
 //FUNÇÕES DO PROGRAMA
 void inicializa();
 void lerArquivoCSV(const char* nomeArquivo);
 void exibirAlunos();
+void reallocHash();
 void adicionarAluno(Aluno *novo);
 void exibirAlunos();
 int calculoHash(char* nome);
@@ -45,7 +46,7 @@ int main(){
     ///
     alunoTemp = new Aluno;
     //...ja li o aluno.. e salvei no alunoTemp (aqui teve um new)
-    a.hash[1548] = alunoTemp;
+    a->hash[1548] = alunoTemp;
 
     time_t inicio, fim;
     inicio = clock();
@@ -67,13 +68,13 @@ int main(){
 }
 
 void inicializa(){
-    a.tamanhoAtual = TAMANHO_HASH_INICIAL;
-    a.quantidade = 0;
-    a.hash = new Aluno*[a.tamanhoAtual];
-    a.hashOcupada = new bool[a.tamanhoAtual];
-    for(int i=0; i<a.tamanhoAtual; i++){
-        a.hashOcupada[i] = false;
-        a.hash[i] = NULL;
+    a->tamanhoAtual = TAMANHO_HASH_INICIAL;
+    a->quantidade = 0;
+    a->hash = new Aluno*[a->tamanhoAtual];
+    a->hashOcupada = new bool[a->tamanhoAtual];
+    for(int i=0; i<a->tamanhoAtual; i++){
+        a->hashOcupada[i] = false;
+        a->hash[i] = NULL;
     }
 }
 
@@ -116,20 +117,16 @@ void lerArquivoCSV(const char* nomeArquivo) {
     }
     
     fclose(arquivo);
-    printf("Leitura concluida. Total de alunos: %d\n", a.quantidade);
+    printf("Leitura concluida-> Total de alunos: %d\n", a->quantidade);
 }
 
 void adicionarAluno(Aluno * novo){
+    if(((double)a->quantidade / (double)a->tamanhoAtual) > 0.5)
+        reallocHash();
     long int hash = calculoHash(novo->nome);
-    if (a.quantidade == a.tamanhoAtual)
-    {
-        std::cout<< "\n [ERRO] Memoria cheia!!\n";
-        return;
-    }
-    
-    while (a.hashOcupada[hash]){
+    while (a->hashOcupada[hash]){
         //std::cout<<"\n ind: "<< hash;
-        if (strcmp(novo->cpf, a.hash[hash]->cpf) == 0)
+        if (strcmp(novo->cpf, a->hash[hash]->cpf) == 0)
         {
             std::cout<< "\n [ERRO] Aluno ja cadastrado!!\n";
             delete novo;
@@ -139,12 +136,33 @@ void adicionarAluno(Aluno * novo){
         hash = calculoReHash(hash, calculoH2(novo->nome));
         colidion++;
     }
-    std::cout<<"\n\n\n";
+    a->hashOcupada[hash] = true;
+    a->hash[hash] = novo;
+    a->quantidade++;
+}
 
 
-    a.hashOcupada[hash] = true;
-    a.hash[hash] = novo;
-    a.quantidade++;
+void reallocHash(){
+    Alunos *oldAlunos = a;
+    a = new Alunos;
+    a->tamanhoAtual = oldAlunos->tamanhoAtual * 2;
+    a->quantidade = 0;
+    a->hash = new Aluno*[a->tamanhoAtual];
+    a->hashOcupada = new bool[a->tamanhoAtual];
+    for(int i=0; i < a->tamanhoAtual; i++){
+        a->hashOcupada[i] = false;
+        a->hash[i] = NULL;
+    }
+    
+    for (int i = 0; i < oldAlunos->tamanhoAtual; i++)
+    {
+        printf("\n %d\n" , i);
+        if(oldAlunos->hashOcupada[i])
+            adicionarAluno(oldAlunos->hash[i]);
+    }
+    printf("\n saiu");
+    
+    delete oldAlunos;
 }
 
 // Função para exibir todos os alunos
@@ -153,11 +171,11 @@ void exibirAlunos() {
     Aluno* atual;
     int contador = 0;
     
-    for (int i = 0; i < a.tamanhoAtual; i++)
+    for (int i = 0; i < a->tamanhoAtual; i++)
      {
-        if(a.hashOcupada[i])
+        if(a->hashOcupada[i])
         {
-            atual = a.hash[i];
+            atual = a->hash[i];
             printf("\nAluno : %d  ", contador);
             printf("  Matricula: %s  ", atual->matricula);
             printf("  CPF: %s  ", atual->cpf);
@@ -170,7 +188,7 @@ void exibirAlunos() {
             contador++;
         }
     }
-    printf("Total: %d alunos\n\n", a.quantidade);
+    printf("Total: %d alunos\n\n", a->quantidade);
 }
 
 int calculoHash(char* nome){
@@ -178,7 +196,7 @@ int calculoHash(char* nome){
     for (int i = 0; nome[i] != '\0';i++)
         k = k * 31 + nome[i];
     if(k < 0) k = -k;
-    return k % a.tamanhoAtual;
+    return k % a->tamanhoAtual;
 
 }
 
@@ -187,11 +205,11 @@ int calculoH2(char* nome){
     for(int i = 0; nome[i] != '\0';i++)
         k = k * 33 + nome[i];
     if(k < 0) k = -k;
-    return 1 + (k % a.tamanhoAtual - 1);
+    return 1 + (k % a->tamanhoAtual - 1);
 }
 
 int calculoReHash(int resultadoCalculoAnterior, int resultadoH2){
     int finalresult = resultadoCalculoAnterior + resultadoH2;
     if(finalresult < 0) finalresult = -finalresult; 
-    return finalresult % a.tamanhoAtual;
+    return finalresult % a->tamanhoAtual;
 }
