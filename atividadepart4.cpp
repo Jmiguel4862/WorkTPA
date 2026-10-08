@@ -17,7 +17,7 @@ struct Aluno{
     char cidade[40];
 };
 
-#define TAMANHO_HASH_INICIAL 100
+#define TAMANHO_HASH_INICIAL 10
 struct Alunos{
     Aluno **hash;
     bool *hashOcupada;
@@ -130,8 +130,8 @@ void adicionarAluno(Aluno * novo){
         {
             std::cout<< "\n [ERRO] Aluno ja cadastrado!!\n";
             delete novo;
+            return;
         }
-        //std::cout<<"\ncolidiu";
         
         hash = calculoReHash(hash, calculoH2(novo->nome));
         colidion++;
@@ -144,6 +144,7 @@ void adicionarAluno(Aluno * novo){
 
 void reallocHash(){
     Alunos *oldAlunos = a;
+    printf("\n tamanho pre-for: %d" , oldAlunos->tamanhoAtual);
     a = new Alunos;
     a->tamanhoAtual = oldAlunos->tamanhoAtual * 2;
     a->quantidade = 0;
@@ -155,14 +156,12 @@ void reallocHash(){
     }
     
     for (int i = 0; i < oldAlunos->tamanhoAtual; i++)
-    {
-        printf("\n %d\n" , i);
         if(oldAlunos->hashOcupada[i])
             adicionarAluno(oldAlunos->hash[i]);
-    }
-    printf("\n saiu");
-    
+    delete []oldAlunos->hash;
+    delete []oldAlunos->hashOcupada;
     delete oldAlunos;
+    printf("\n finalizo");
 }
 
 // Função para exibir todos os alunos
@@ -202,10 +201,11 @@ int calculoHash(char* nome){
 
 int calculoH2(char* nome){
     long int k = 0;
+    int h2;
     for(int i = 0; nome[i] != '\0';i++)
         k = k * 33 + nome[i];
-    if(k < 0) k = -k;
-    return 1 + (k % a->tamanhoAtual - 1);
+    h2 = k % (a->tamanhoAtual - 1);
+    return 1 + (h2 < 0 ? -h2 : h2);
 }
 
 int calculoReHash(int resultadoCalculoAnterior, int resultadoH2){
