@@ -42,23 +42,12 @@ int calculoReHash(int resultadoCalculoAnterior, int resultadoH2);
 int main(){
     inicializa();
     printf("=== SISTEMA DE LEITURA DE ALUNOS CSV ===\n\n");
-    Aluno* alunoTemp;
-    ///
-    alunoTemp = new Aluno;
-    //...ja li o aluno.. e salvei no alunoTemp (aqui teve um new)
-    a->hash[1548] = alunoTemp;
 
     time_t inicio, fim;
     inicio = clock();
     // Ler arquivo CSV (você pode alterar o nome do arquivo) Essa função já cria a lista dinâmica com os alunos
     lerArquivoCSV("alunos.csv");
     fim = clock();
-    //se eu quiser pegar como inteiro o valor do tempo
-
-    //se eu quiser pegar como double o valor do tempo
-    // double tempo2 = difftime(fim, inicio);
-    // printf("Tempo de leitura: %.2f segundos\n", tempo2);
-    // Exibir todos os alunos carregados
     exibirAlunos();
     printf("Tempo de leitura: %ld milissegundos\n", (int)fim - inicio);
     printf("\nTotal de Colições: %ld  \n" ,colidion);
@@ -150,6 +139,7 @@ void reallocHash(){
     a->quantidade = 0;
     a->hash = new Aluno*[a->tamanhoAtual];
     a->hashOcupada = new bool[a->tamanhoAtual];
+
     for(int i=0; i < a->tamanhoAtual; i++){
         a->hashOcupada[i] = false;
         a->hash[i] = NULL;
@@ -158,6 +148,8 @@ void reallocHash(){
     for (int i = 0; i < oldAlunos->tamanhoAtual; i++)
         if(oldAlunos->hashOcupada[i])
             adicionarAluno(oldAlunos->hash[i]);
+
+    
     delete []oldAlunos->hash;
     delete []oldAlunos->hashOcupada;
     delete oldAlunos;
