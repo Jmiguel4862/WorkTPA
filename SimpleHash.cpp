@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <iostream>
 #include <cstring>
-#define max 10000
+#define max 1600
  
 
 struct Aluno{
@@ -20,51 +20,47 @@ struct Aluno{
 
 
 struct  Hash{
-    Aluno *aluno = new Aluno[max];
-    int quantidade = 0;
-    int tamanhoAtual = max;
+    Aluno **aluno;
+    int quantidade;
+    int tamanhoAtual;
 };
 
 //CHAMADAS DE FUNÇÕES;
 
-void InicializaList(Hash);
+void InicializaList(Hash *ls);
 void lerArquivoCSV(const char* nomeArquivo);
-int calcularhash(char *cpf);
-void adicionarAluno(Aluno *novo , genericList *gls);
+void adicionarAluno(Aluno *novo , Hash *ls);
+int calculoHash(char* nome , Hash *ls);
+int calculoH2(char* nome , Hash *ls);
+int calculoReHash(int resultadoCalculoAnterior, int resultadoH2 , Hash *ls);
 
 
 Hash simplehash;
+int colizao = 0;
 
 int main(int argc, char const *argv[])
 {
-    InicializaList(listCPF);
+    InicializaList(&simplehash);
+    
 
     lerArquivoCSV("alunos.csv");
+    printf("\n%d" , colizao);
     return 0;
 }
 
-void InicializaList(Hash ls){
-    for (int i = 0 ; i < max; i++)
-    {
-        if (gls[i].start != NULL)
-        {
-            Hash *temp = gls[i].start , *del = NULL;
-            while (temp != NULL)
-            {
-                del = temp;
-                temp = temp->next;
-                delete del->aluno;
-                delete del;
-            }
-        }
-        gls[i].start = NULL;
-        gls[i].end = NULL;
-        gls[i].quantidade = 0;
-    }
+void InicializaList(Hash *ls){
+    if(ls->aluno != NULL)
+        delete [] ls->aluno;
+    ls->aluno = new Aluno*[max];
+    for(int i = 0; i < ls->tamanhoAtual;i++)
+        ls->aluno[i] = NULL;
+    ls->quantidade = 0;
+    ls->tamanhoAtual = max;
 }
 
 void lerArquivoCSV(const char* nomeArquivo) { 
     FILE* arquivo = fopen(nomeArquivo, "r");
+    int count = 0;
     if (arquivo == NULL) {
         printf("Erro ao abrir o arquivo %s\n", nomeArquivo);
         return;
@@ -86,7 +82,9 @@ void lerArquivoCSV(const char* nomeArquivo) {
         //O [^caractere] é uma classe de caracteres negativa - significa "qualquer caractere EXCETO o especificado".
         //É muito útil para parar a leitura quando encontrar um delimitador específico (como vírgula ou quebra de linha).
         if (fscanf(arquivo, "%8[^,],%14[^,],%39[^,],%lf,%d,%39[^,],%39[^\n]\n", novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
-            adicionarAluno(novo , listCPF);
+            adicionarAluno(novo , &simplehash);
+            count++;
+            std::  cout<<"\rPorcentagem : "<<count<<std::flush;
 
         } else {
             // Se não conseguiu ler todos os campos, liberar memória e sair
@@ -96,4 +94,41 @@ void lerArquivoCSV(const char* nomeArquivo) {
     }
     
     fclose(arquivo);
+}
+
+void adicionarAluno(Aluno *novo , Hash *ls){
+    if (ls->quantidade == ls->tamanhoAtual)
+    {
+        return;
+    }
+    int hashAtual = calculoHash(novo->nome, ls);
+    while (ls->aluno[hashAtual] != NULL)
+    {
+
+        hashAtual = calculoReHash(hashAtual , calculoH2(novo->nome , ls) , ls);
+        colizao++;
+    }
+    ls->aluno[hashAtual] = novo;
+    ls->quantidade++;
+}
+
+int calculoHash(char* nome , Hash *ls){
+    unsigned int k = 0;
+    for (int i = 0; nome[i] != '\0';i++)
+        k = k * 31 + (unsigned char)nome[i];
+    return (int)(k % ls->tamanhoAtual);
+
+}
+
+int calculoH2(char* nome , Hash *ls){
+    unsigned int k = 0;
+    unsigned int h2;
+    for(int i = 0; nome[i] != '\0';i++)
+        k = k * 33 + (unsigned char)nome[i];
+    h2 = k % (ls->tamanhoAtual - 1);
+    return (int)(1 + h2);
+}
+
+int calculoReHash(int resultadoCalculoAnterior, int resultadoH2 , Hash *ls){
+    return (resultadoCalculoAnterior + resultadoH2) % ls->tamanhoAtual;
 }
