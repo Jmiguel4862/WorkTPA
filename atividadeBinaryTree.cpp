@@ -167,3 +167,85 @@ void adicionarAluno(No *novo , No **raiz){
     }
     
 }
+
+int alturaDireita(No *raiz){
+    return(raiz == NULL || raiz->dir == NULL)? 0:raiz->dir->altura;
+}
+int alturaEsquerda(No *raiz){
+    return(raiz == NULL || raiz->esq == NULL)? 0:raiz->esq->altura;
+}
+
+void rotationLelf(No **raiz){
+    No *h1 = *raiz, *h2 = (*raiz)->dir;
+    h1->dir = h2->esq;
+    h2->pai = h1->pai;
+    h1->pai = h2;
+    h2->esq = h1;
+    if (h1->dir != NULL)
+    {
+        h1->dir->pai = h1;
+    }
+    h1->altura--;
+    *raiz = h2;
+}
+
+void rotationRight(No **raiz){
+    No *h1 = *raiz, *h2 = (*raiz)->esq;
+    h1->esq = h2->dir;
+    h2->pai = h1->pai;
+    h1->pai = h2;
+    h2->dir = h1;
+    if (h1->esq != NULL)
+    {
+        h1->esq->pai = h1;
+    }
+    h1->altura--;
+    *raiz = h2;
+}
+
+void incNivel(No *raiz){
+    if(raiz == NULL) return;
+    incNivel(raiz->esq);
+    incNivel(raiz->dir);
+    raiz->nivel++;
+}
+
+void decNivel(No *raiz){
+    if(raiz == NULL) return;
+    incNivel(raiz->esq);
+    incNivel(raiz->dir);
+    raiz->nivel--;
+}
+
+void balanceTree(No **raiz){
+    if (*raiz == NULL)
+        return;
+    int dif = alturaEsquerda(*raiz) - alturaDireita(*raiz);
+    if(dif > 1)
+    {
+        if(alturaEsquerda((*raiz)->esq) - alturaDireita((*raiz)->esq) < 0)
+        {
+            rotationLelf(&(*raiz)->esq);
+        }
+        else
+        {
+            rotationRight(raiz);
+        }
+    }
+    else if(dif < -1)
+    {
+         if(alturaEsquerda((*raiz)->dir) - alturaDireita((*raiz)->dir) > 0)
+        {
+            rotationLelf(&(*raiz)->dir);
+        }
+        else
+        {
+            rotationRight(raiz);
+        }
+    }
+    else
+    {
+        balanceTree(&(*raiz)->esq);
+        balanceTree(&(*raiz)->dir);
+    }
+}
