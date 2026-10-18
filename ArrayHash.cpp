@@ -6,8 +6,7 @@
 #include <ctime>
 #include <string.h>
 #include <iostream>
-#define Max  2000000
-using namespace std;
+#define Max  100
 
 //Exemplo do arquivo CSV que será lido
 //Matricula,CPF,Nome,Nota,Idade,Curso,Cidade
@@ -56,7 +55,6 @@ int main(){
     inicio = clock();
     // Ler arquivo CSV (você pode alterar o nome do arquivo) Essa função já cria a lista dinâmica com os alunos
     lerArquivoCSV("alunos.csv");
-    cout<<"ok"<<endl;
     fim = clock();
     //exibirAlunos();
     printf("\n\n");
@@ -121,7 +119,7 @@ void insertIntoTree(Aluno *novo , int ind){
         novo->pai = a.raiz[ind];
         if (strcmp(novo->nome , a.raiz[ind]->nome) == 0)
         {
-            cout<<"[ERRO] - Aluno ja cadastrado"<<endl;
+            printf("[ERRO] - Aluno ja cadastrado\n");
             delete novo;
         }
         else if (strcmp( a.raiz[ind]->nome , novo->nome) < 0)
@@ -144,7 +142,7 @@ void insertIntoTree(Aluno *novo , int ind){
 void buscarAlunoPorNome(){
     char name [400];
     Aluno *soerch;
-    cout<<"\n\nDigite o nome que deseja pesquisar: ";
+    printf("\n\nDigite o nome que deseja pesquisar: ");
     fgets(name, 400, stdin);
     soerch = searchAlunoInTree(name, 0);
     if(soerch != NULL)

@@ -1,6 +1,8 @@
 #include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <string.h>
 #include <iostream>
-#include <cstring>
 #define max 1600
  
 
@@ -38,13 +40,22 @@ int calculoReHash(int resultadoCalculoAnterior, int resultadoH2 , Hash *ls);
 Hash simplehash;
 int colizao = 0;
 
-int main(int argc, char const *argv[])
-{
+int main(){
     InicializaList(&simplehash);
+    printf("=== SISTEMA DE LEITURA DE ALUNOS CSV ===\n\n");
     
-
+    time_t inicio, fim;
+    inicio = clock();
+    // Ler arquivo CSV (você pode alterar o nome do arquivo) Essa função já cria a lista dinâmica com os alunos
     lerArquivoCSV("alunos.csv");
-    printf("\n%d" , colizao);
+    fim = clock();
+    //exibirAlunos();
+    printf("\n\n");
+    //se eu quiser pegar como inteiro o valor do tempo
+
+    printf("Tempo de leitura: %ld milissegundos\n", (int)fim - inicio);
+
+    system("pause");
     return 0;
 }
 

@@ -22,41 +22,37 @@ struct Aluno{
     char cidade[40];
 };
 
-struct NoAluno{
-    Aluno *aluno;
-    NoAluno *pai;
-    NoAluno *dir;
-    NoAluno *esq;
-    int altura;
-    int grau;
-    int nivel;
+struct No{
+    Aluno *aluno= NULL;
+    No *pai = NULL;
+    No *dir = NULL;
+    No *esq = NULL;
+    int altura = 0;
+    int grau = 0;
+    int nivel = 0;
 };
 
 struct Arvore{
-    NoAluno *raiz;
+    No *raiz = NULL;
     int quantidadeElementosDeAlunos;
     int nivelMaximo;
 
 };
 
-// CHAMADAS DE FUNÇÕES DO PROGRAMA
-void clsbuffer();
-void cleanBuffer(char *c);
-void inicializa();
-void clean_tree(NoAluno **raiz);
-void adicionarAluno(Aluno* novo);
-void insertIntoTree(NoAluno *novo , NoAluno **raiz);
-void buscarAlunoPorNome();
-NoAluno *searchAlunoInTree(char *name , NoAluno *raiz);
+// FUNÇÕES DO PROGRAMA
 void lerArquivoCSV(const char* nomeArquivo);
-void exibirAlunos();
-void listItensOfTree(NoAluno *current);
-void balanceTree(NoAluno **raiz);
+void inicializa(Arvore *a);
+void cleanTree(No **raiz);
+void adicionarAluno(No *novo , No **raiz);
+
+
+
+
 // BASE PRIMARIA
 Arvore a;
 // FUNÇÃO DE EXECUÇÃO
 int main(){
-    inicializa();
+    inicializa(&a);
     printf("=== SISTEMA DE LEITURA DE ALUNOS CSV ===\n\n");
     
     time_t inicio, fim;
@@ -66,11 +62,12 @@ int main(){
     fim = clock();
     //exibirAlunos();
     printf("\n\n");
-    buscarAlunoPorNome();
+    //buscarAlunoPorNome();
     //se eu quiser pegar como inteiro o valor do tempo
 
     printf("Tempo de leitura: %ld milissegundos\n", (int)fim - inicio);
     printf("\n\n Maior altura: %d", a.nivelMaximo) ;
+    printf("\n");
     //se eu quiser pegar como double o valor do tempo
     // double tempo2 = difftime(fim, inicio);
     // printf("Tempo de leitura: %.2f segundos\n", tempo2);
@@ -81,127 +78,9 @@ int main(){
     return 0;
 }
 
-
-//CONTEUDOS DAS FUNÇÕES
-void clsbuffer(){
-    char c;
-    while ((c = getchar()) != '\n' && c != EOF);
-}
-
-void cleanBuffer(char *c){
-    if(strlen(c) == 400)
-        clsbuffer();
-}
-
-void inicializa(){
-    clean_tree(&a.raiz);
-    a.raiz = NULL;
-    a.nivelMaximo = 0;
-    a.quantidadeElementosDeAlunos = 0;
-}
-
-void clean_tree(NoAluno **raiz){
-    if (*raiz == NULL)
-        return;
-    if ((*raiz)->dir != NULL)
-        clean_tree(&(*raiz)->dir);
-    if ((*raiz)->esq != NULL)
-        clean_tree(&(*raiz)->esq);
-    delete *raiz;
-}
-// Trocar pra função generica recebendo a lista como
-// parametro
-void adicionarAluno(Aluno* novo) {
-    NoAluno *novoNodo = new NoAluno;
-    novoNodo->aluno = novo;
-    novoNodo->dir = NULL;
-    novoNodo->esq = NULL;
-    novoNodo->pai = NULL;
-    novoNodo->grau = 0;
-    novoNodo->nivel = 0;
-    novoNodo->altura = 0;
-    insertIntoTree(novoNodo, &(a.raiz));
-}
-
-void insertIntoTree(NoAluno *novo , NoAluno **raiz){
-    if (*raiz == NULL)
-    {
-        if(novo->pai != NULL)
-        {
-            if (novo->pai->grau == 0) novo->pai->altura++;
-            novo->pai->grau++;
-        }
-        *raiz = novo;
-        if(novo->nivel > a.nivelMaximo)
-            a.nivelMaximo = novo->nivel;
-        a.quantidadeElementosDeAlunos++;
-    }
-    
-    else 
-    {
-        novo->nivel++;
-        novo->pai = *raiz;
-        if (strcmp(novo->aluno->nome , (*raiz)->aluno->nome) == 0)
-        {
-            cout<<"[ERRO] - Aluno ja cadastrado"<<endl;
-            delete novo;
-        }
-        else if (strcmp( (*raiz)->aluno->nome , novo->aluno->nome) < 0)
-        {
-            insertIntoTree(novo , &((*raiz)->dir));
-            if((*raiz)->altura <= (*raiz)->dir->altura)
-                (*raiz)->altura++;
-        }
-        else
-        {
-            insertIntoTree(novo , (&(*raiz)->esq));
-            if((*raiz)->altura <= (*raiz)->esq->altura) 
-                (*raiz)->altura++;
-        }
-
-    }
-}
-
-void buscarAlunoPorNome(){
-    char name [400];
-    NoAluno *soerch;
-    cout<<"\n\nDigite o nome que deseja pesquisar: ";
-    fgets(name, 400, stdin);
-    soerch = searchAlunoInTree(name, a.raiz);
-    if(soerch != NULL)
-    {
-        printf("\n\n");
-        printf("  Matricula: %s", soerch->aluno->matricula);
-        printf("  CPF: %s", soerch->aluno->cpf);
-        printf("  Nome: %s", soerch->aluno->nome);
-        printf("  Nota: %.2f", soerch->aluno->nota);
-        printf("  Idade: %d", soerch->aluno->idade);
-        printf("  Curso: %s", soerch->aluno->curso);
-        printf("  Cidade: %s", soerch->aluno->cidade);
-        printf("\n\n");
-    }
-    else
-    {
-        printf("\n\n [ERRO] - Aluno não encontrado\n\n");
-    }
-}
-
-NoAluno *searchAlunoInTree(char *name , NoAluno *raiz){
-    int val; 
-    if(raiz == NULL)
-        return NULL;
-    val = strcmp(raiz->aluno->nome , name);
-    if(val == 0)
-        return raiz;
-    if (val < 0)
-        return searchAlunoInTree(name, raiz->dir);
-    else
-        return searchAlunoInTree(name, raiz->esq);
-}
-
-// Função para ler arquivo CSV
 void lerArquivoCSV(const char* nomeArquivo) { 
     FILE* arquivo = fopen(nomeArquivo, "r");
+    int count = 0;
     if (arquivo == NULL) {
         printf("Erro ao abrir o arquivo %s\n", nomeArquivo);
         return;
@@ -218,15 +97,16 @@ void lerArquivoCSV(const char* nomeArquivo) {
     }
     // Ler cada linha usando fscanf diretamente na struct
     Aluno* novo;
+    printf("\n Carregando...");
     while ((novo = new Aluno) != NULL) {
         //%N significa que fará a leitura de até N caracteres, evitando overflow
         //O [^caractere] é uma classe de caracteres negativa - significa "qualquer caractere EXCETO o especificado".
         //É muito útil para parar a leitura quando encontrar um delimitador específico (como vírgula ou quebra de linha).
-        if (fscanf(arquivo, "%8[^,],%14[^,],%39[^,],%lf,%d,%39[^,],%39[^\n]\n", 
-                   novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
-            
-            adicionarAluno(novo);
-            //balanceTree(&(a.raiz));
+        if (fscanf(arquivo, "%8[^,],%14[^,],%39[^,],%lf,%d,%39[^,],%39[^\n]\n", novo->matricula, novo->cpf, novo->nome, &novo->nota, &novo->idade, novo->curso, novo->cidade) == 7) {
+            No *novoNo = new No;
+            novoNo->aluno = novo;
+            adicionarAluno(novoNo , &a.raiz);
+
         } else {
             // Se não conseguiu ler todos os campos, liberar memória e sair
             delete novo;
@@ -235,89 +115,55 @@ void lerArquivoCSV(const char* nomeArquivo) {
     }
     
     fclose(arquivo);
-    printf("Leitura concluida. Total de alunos: %d\n", a.quantidadeElementosDeAlunos);
 }
 
-// Função para exibir todos os alunos
-// Função já transformada em generica
-//!!! arrumar essa funcao
-void exibirAlunos() {
-    printf("\n=== LISTA DE ALUNOS ===\n");
-    listItensOfTree(a.raiz);
-    printf("Total: %d alunos\n\n", a.quantidadeElementosDeAlunos);
-    printf("Nivel maximo: %d \n\n", a.nivelMaximo);
+void inicializa(Arvore *a){
+    cleanTree(&a->raiz);
+    a->nivelMaximo = 0;
+    a->quantidadeElementosDeAlunos = 0;
+
 }
 
-void listItensOfTree(NoAluno *current){
-    if(current == NULL)
+void cleanTree(No **raiz){
+    if (*raiz == NULL)
         return;
-    if (current->dir != NULL)
-        listItensOfTree(current->dir);
-    if (current->esq != NULL)
-        listItensOfTree(current->esq);
-    printf("  Matricula: %s", current->aluno->matricula);
-    printf("  CPF: %s", current->aluno->cpf);
-    printf("  Nome: %s", current->aluno->nome);
-    printf("  Nota: %.2f", current->aluno->nota);
-    printf("  Idade: %d", current->aluno->idade);
-    printf("  Curso: %s", current->aluno->curso);
-    printf("  Cidade: %s", current->aluno->cidade);
-    printf("  ---\n");
+    cleanTree(&(*raiz)->dir);
+    cleanTree(&(*raiz)->esq);
+    delete *raiz;
 }
 
-
-void RotationLeft(NoAluno**raiz){
-    NoAluno *h1 = *raiz, *h2 = (*raiz)->dir;
-    (*raiz) = h2;
-    h1->pai = h2;
-    h1->dir = h2->esq;
-    h1->altura--;
-    h2->esq = h1;
-}
-
-void RotationRight(NoAluno ** raiz){
-    NoAluno *h1 = *raiz, *h2 = (*raiz)->dir;
-    (*raiz) = h2;
-    h1->pai = h2;
-    h1->esq = h2->dir;
-    h1->altura--;
-    h2->dir = h1;
-}
-
-
-void balanceTree(NoAluno **raiz){
-    int dif;
-    if(*raiz == NULL)
+void adicionarAluno(No *novo , No **raiz){
+    if(*raiz == NULL){
+        if (novo->pai != NULL )
+        {
+            if (novo->pai->grau < 1) 
+                novo->pai->altura++;
+            novo->pai->grau++;
+        }
+        *raiz = novo;
+        if(novo->nivel > a.nivelMaximo) a.nivelMaximo  = novo->nivel;
         return;
-    dif = (*raiz)->esq->altura - (*raiz)->dir->altura;
-    if ( dif > 1)
-    {
-        if ( (*raiz)->esq->esq->altura < (*raiz)->esq->dir->altura)
-        {
-            (*raiz)->esq->esq->altura++;
-            RotationLeft(&((*raiz)->esq));
-            balanceTree(raiz);
-        }
-        else
-        {
-            RotationRight(&((*raiz)->esq));
-            balanceTree(raiz);
-        }
-        
     }
-    else if (dif < -1)
+    novo->nivel++;
+    novo->pai = *raiz;
+    if(strcmp(novo->aluno->nome, (*raiz)->aluno->nome) == 0)
     {
-        if ( (*raiz)->dir->esq->altura > (*raiz)->dir->dir->altura)
-        {
-            RotationRight(&((*raiz)->esq));
-            balanceTree(raiz);
-        }
-        else
-        {
-            RotationLeft(&((*raiz)->esq));
-            balanceTree(raiz);
-        }
+        delete novo->aluno;
+        delete novo;
+        printf("\n [ERRO] - Aluno ja cadastrado");
+        return;
     }
-    balanceTree(&((*raiz)->dir));
-    balanceTree(&((*raiz)->esq));
+    else if(strcmp(novo->aluno->nome, (*raiz)->aluno->nome) < 0)
+    {
+        adicionarAluno(novo , &(*raiz)->esq);
+        if((*raiz)->altura == (*raiz)->esq->altura )
+            (*raiz)->altura++;
+    }
+    else
+    {
+        adicionarAluno(novo , &(*raiz)->dir);
+        if((*raiz)->altura == (*raiz)->dir->altura )
+            (*raiz)->altura++;
+    }
+    
 }
