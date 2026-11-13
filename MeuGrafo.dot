@@ -1,0 +1,11 @@
+digraph MeuGrafo {
+	A;
+	B;
+	C;
+	D;
+	A -> B [label = "4" , weight = 4];
+	A -> D [label = "3" , weight = 3];
+	B -> C [label = "3" , weight = 3];
+	C -> D [label = "8" , weight = 8];
+
+}

@@ -173,7 +173,7 @@ void preencherGrafo(Grafo *g , DadosGrafo *dg){
     if(g == NULL || dg == NULL) return;
     limparGrafo(g, g->maxVertices);
     char nomeVert = 'A';
-    int FaltaNV = (dg->qtVertices*(dg->qtVertices-1) * dg->preenchimentoArestas)/(((dg->direcionado)?1:2)*100);
+    int faltaNV = (dg->qtVertices*(dg->qtVertices-1) * dg->preenchimentoArestas)/(((dg->direcionado)?1:2)*100);
     int ind , rest, peso;
     g->direcionado = dg->direcionado;
     g->qtVertices = dg->qtVertices;
@@ -181,14 +181,13 @@ void preencherGrafo(Grafo *g , DadosGrafo *dg){
         g->Vertices[i] = nomeVert;
         nomeVert = (char)(g->Vertices[i] + 1);
     }
-    while(FaltaNV > 0){
+    while(faltaNV > 0){
         ind = intRand(g->qtVertices);
         rest = intRand(g->qtVertices);
         if (ind == rest || g->TabelaArestas[ind][rest] != 0) continue;
         peso = intRand(10) + 1;
-        g->TabelaArestas[ind][rest] = peso;
-        if(!g->direcionado)g->TabelaArestas[rest][ind] = peso;
-        FaltaNV--;
+        conectar(g,ind , rest, peso);
+        faltaNV--;
     }
     delete dg;
 }

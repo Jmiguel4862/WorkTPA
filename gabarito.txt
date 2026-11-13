@@ -1,0 +1,7 @@
+arquivo | vertices | arestas | peso total da MST | arestas na MST
+g01_mini.dot | 8 | 14 | 33 | 7
+g02_pequeno.dot | 50 | 150 | 8825 | 49
+g03_medio.dot | 1000 | 5000 | 119284 | 999
+g04_grande.dot | 10000 | 60000 | 1010831 | 9999
+g05_muito_grande.dot | 100000 | 500000 | 12024418 | 99999
+g06_denso.dot | 2000 | 1000000 | 3440 | 1999

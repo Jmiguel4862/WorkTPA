@@ -10,6 +10,7 @@ struct Vizinho;
 
 struct Vertice{
     char dado;
+    int grau = 0;
     Vizinho *vizinho = NULL;
 };
 struct Vizinho
@@ -22,6 +23,7 @@ struct Vizinho
 struct DadosGrafo
 {
     int qtVertices;
+    int grauRegular = -1;
     bool direcionado;
     int preenchimentoArestas;
 };
@@ -29,6 +31,7 @@ struct DadosGrafo
 struct Grafo{
     Vertice **ListaVertices = NULL;
     bool direcionado;
+    int grauRegular = -1; 
     int qtVertices;
     int maxVertices;
 };
@@ -39,7 +42,7 @@ void liberaVertices(Grafo *g , int tamanho);
 void inicializaGrafo(Grafo **gr , int tamanho);
 void LiberaGrafo(Grafo **g);
 int intRand(int num);
-void printtable(Grafo *g);
+void printGrafo(Grafo *g);
 void preencherGrafo(Grafo *g , DadosGrafo *dg);
 DadosGrafo* getDadosGrafo();
 void conectandoVertices(Grafo *g);
@@ -47,9 +50,10 @@ void conectar(Grafo *g, int v1 , int v2 , int peso);
 void conectar(Grafo *g, char v1 , char v2 , int peso);
 bool inserirVertice(Grafo *g , char c);
 int buscarVertice(Grafo *g , char c);
-void lerArquivoDOT(Grafo *g);
+void lerArquivoDOT(Grafo **g);
 void geraArquivoDOT(Grafo *g);
-
+bool hasVizinho(Vertice *v, Vertice *buscado);
+void conectarUM(Grafo *g, int v1 , int v2 , int peso);
 //FUNÇÕES AUXILIARES
 void cleanBuffer(){
     char c;
@@ -67,8 +71,9 @@ bool letInt(int &n){
 }
 
 //DECLARAÇÃO DO MAIN
-int main(int argc, char const *argv[])
+int main()
 {
+    printf("ok");
     srand(time(NULL));
     menu();
     return 0;
@@ -109,10 +114,10 @@ void menu(){
             geraArquivoDOT(grafo);
             break;
         case 5:
-            lerArquivoDOT(grafo);
+            lerArquivoDOT(&grafo);
             break;
         case 6:
-            printtable(grafo);
+            printGrafo(grafo);
             break;
         case 0:
             break;
@@ -120,7 +125,7 @@ void menu(){
         default:
             break;
         }
-        printf("\n\n\n Precione qualquer teclar para seguir");
+         printf("\n\n\n Precione qualquer teclar para seguir");
         system("pause");
     } while (op != 0);
     LiberaGrafo(&grafo);
@@ -166,7 +171,6 @@ void inicializaGrafo(Grafo **gr , int tamanho){
 
 void LiberaGrafo(Grafo **g){
     if(*g ==  NULL) return; 
-    Vizinho *del, *atual;
     liberaVertices(*g , (*g)->maxVertices);
     delete [](*g)->ListaVertices;
     delete *g;
@@ -177,7 +181,7 @@ int intRand(int num){
     return (rand() % num);
 }
 
-void printtable(Grafo *g){
+void printGrafo(Grafo *g){
     if(g == NULL || g->qtVertices == 0)
     {
         printf("\n\n-> Grafo Vazio ou inesitente.\n\n");
@@ -198,66 +202,129 @@ void printtable(Grafo *g){
         }
 }
 
-Vizinho *hasVizinho(Vertice *v, Vertice *buscado){
+bool hasVizinho(Vertice *v, Vertice *buscado){
     if(v == NULL || buscado == NULL)
-        return NULL;
+        return false;
     Vizinho *atual = v->vizinho;
     while (atual != NULL)
     {
         if (atual->vizinho == buscado)
-            return atual;    
+            return true;    
         atual = atual->prox;
     }
-    return NULL;
+    return false;
+}
+
+int proximoVerticeIncompleto(Grafo *g , int atual){
+    if(g == NULL) return -1;
+    int alvo = intRand(g->qtVertices) , init = alvo;
+    for (; alvo < g->qtVertices; alvo++)
+        if (alvo != atual && !hasVizinho(g->ListaVertices[atual] , g->ListaVertices[alvo]) && g->ListaVertices[alvo]->grau < g->grauRegular)
+            return alvo;
+    alvo = init - 1;
+    for (; alvo >= 0 ; alvo--)
+        if (alvo != atual && !hasVizinho(g->ListaVertices[atual] , g->ListaVertices[alvo]) && g->ListaVertices[alvo]->grau < g->grauRegular)
+            return alvo; 
+    return -1;
 }
 
 void preencherGrafo(Grafo *g , DadosGrafo *dg){
-    if(g == NULL || dg == NULL) return;
+    if(g == NULL || dg == NULL)
+    {
+        if (dg != NULL) delete dg;
+        return;
+    }
     liberaVertices(g , g->maxVertices);
+
     char nomeVert = 'A';
-    int FaltaNV = (dg->qtVertices*(dg->qtVertices-1) * dg->preenchimentoArestas)/(((dg->direcionado)?1:2)*100);
-    int line, alvo, peso;
-    Vizinho *v;
+    int alvo = 0, peso;
     g->direcionado = dg->direcionado;
+    g->grauRegular = dg->grauRegular;
+
     for(int i = 0; i < dg->qtVertices;i++)
     {
         inserirVertice(g, nomeVert); 
         nomeVert = (char)(nomeVert+1);
     }
-    while(FaltaNV > 0){
-        line = intRand(g->qtVertices);
-        alvo = intRand(g->qtVertices);
-        peso = intRand(10) + 1;
-        if (v = hasVizinho(g->ListaVertices[line] , g->ListaVertices[alvo]))continue;
-        conectar(g,line , alvo, peso);
-        if(!g->direcionado)conectar(g,alvo , peso, peso);
-        FaltaNV--;
-    }
+
+
+   if(g->grauRegular > -1)
+   {
+        for(int i = 0; i < g->qtVertices; i++)
+        {
+            while (g->ListaVertices[i]->grau < dg->grauRegular && (alvo = proximoVerticeIncompleto(g,i)) >= 0)
+            {    
+                if (i == alvo)continue;
+                peso = intRand(10) + 1;
+                conectar(g, i , alvo, peso);
+            } 
+        }
+   }
+   else
+   {
+        int FaltaNV = (dg->qtVertices*(dg->qtVertices-1) * dg->preenchimentoArestas)/(((dg->direcionado)?1:2)*100);
+        int line;
+
+        while (FaltaNV > 0)
+        {
+            line = intRand(g->qtVertices);
+            alvo = intRand(g->qtVertices);
+
+            if ( line == alvo)continue;
+            
+            peso = intRand(10) + 1;
+
+            conectar(g, line , alvo, peso);
+
+            FaltaNV--;
+        }
+   }
+   
     delete dg;
 }
 
 DadosGrafo* getDadosGrafo(){
     DadosGrafo *dg = new DadosGrafo;
     char c = ' ';
-    do
-    {
-        printf("\n-> Quantas vertices você quer no grafo(1-20): ");
-    } while (!letInt(dg->qtVertices)|| dg->qtVertices < 1 || dg->qtVertices > 20);
-    do
-    {
-        printf("\n-> Porcentagen das arestas preenchidas(1-100): ");
 
-    } while ( !letInt(dg->preenchimentoArestas) || dg->preenchimentoArestas > 100 || dg->preenchimentoArestas < 1);
     do
     {
-        printf("\n-> Direcionado(S/N): ");
+        printf("\n-> Quantas vertices você quer no grafo(1-%d): " , TamInit);
+    } while (!letInt(dg->qtVertices)|| dg->qtVertices < 1 || dg->qtVertices > TamInit);
+
+    do
+        {
+            printf("\n-> Direcionado(S/N): ");
+            scanf("%c" , &c);
+            cleanBuffer();
+            if(c >='a')  c = c - 32;
+
+    } while(c != 'S' && c != 'N');
+    if(c == 'S') dg->direcionado = true;
+    else  dg->direcionado = false;
+
+    do{
+        printf("\n-> O grafo e regular(S/N): ");
         scanf("%c" , &c);
         cleanBuffer();
         if(c >='a')  c = c - 32;
 
     } while(c != 'S' && c != 'N');
-    if(c == 'S') dg->direcionado = true;
-    else  dg->direcionado = false;
+
+    if (c == 'S')
+    {
+        do
+        {
+            printf("\n-> Qual o Grau regular(1-%d): " , dg->qtVertices-1);
+        } while (!letInt(dg->grauRegular)|| dg->grauRegular < 1 || dg->grauRegular > (dg->qtVertices - 1));
+    }
+    else
+    {
+        do
+        {
+            printf("\n-> Porcentagen das arestas preenchidas(1-100): ");
+        } while ( !letInt(dg->preenchimentoArestas) || dg->preenchimentoArestas > 100 || dg->preenchimentoArestas < 1);
+    }
     return dg;
 }
 
@@ -265,7 +332,7 @@ void conectandoVertices(Grafo *g){
     if (g == NULL || g->qtVertices == 0)
         return;
     int v1 , v2 , peso;
-    printtable(g);
+    printGrafo(g);
     do{
         printf("\n\n -> Digite o inde do primeiro vertice (1-%d): " , g->qtVertices);
     } while (!letInt(v1) || v1 > g->qtVertices || v1 < 1);
@@ -279,19 +346,38 @@ void conectandoVertices(Grafo *g){
     v2--;
     conectar(g, v1, v2 , peso);
 }
+ 
+void conectarUM(Grafo *g, int v1 , int v2 , int peso){
+    if( g->ListaVertices[v1] == NULL || g->ListaVertices[v2] == NULL  || hasVizinho(g->ListaVertices[v1], g->ListaVertices[v2]) )
+        return;
+    Vizinho *atual = g->ListaVertices[v1]->vizinho , *novo = new Vizinho;
+    Vertice *vizinho = g->ListaVertices[v2];
+    novo->peso = peso;
+    novo->vizinho = vizinho;
+
+    if (atual == NULL)
+        g->ListaVertices[v1]->vizinho = novo;
+
+    while(atual != NULL) 
+    {
+        if(atual->prox == NULL)
+        {
+            atual->prox = novo;
+            break;
+        }
+        atual = atual->prox;
+    }
+    g->ListaVertices[v1]->grau++;
+    if(g->direcionado) g->ListaVertices[v2]->grau++;
+}
 
 void conectar(Grafo *g, int v1 , int v2 , int peso){
-    if(g->ListaVertices[v1] == NULL || g->ListaVertices[v1] == NULL)
-        return;
-
-    Vizinho *atual = g->ListaVertices[v1]->vizinho;
-    Vertice *vizinho = g->ListaVertices[v2];
-
-    while(atual != NULL) atual = atual->prox;
-
-    atual = new Vizinho;
-    atual->vizinho = vizinho;
-    atual->peso = peso;
+    conectarUM(g, v1, v2, peso);
+    if(!g->direcionado) {
+        conectarUM(g, v2, v1, peso);
+        g->ListaVertices[v1]->grau--;
+        g->ListaVertices[v2]->grau--;
+    }
 }
 
 void conectar(Grafo *g, char v1 , char v2 , int peso){
@@ -318,43 +404,42 @@ int buscarVertice(Grafo *g , char c){
     return -1;
 }
 
-void lerArquivoDOT(Grafo *g){
+void lerArquivoDOT(Grafo **g){
     FILE *arq = fopen("MeuGrafo.dot", "r");
     if (arq ==  NULL)
     {
         printf("\n\n\n ERRO AO ABRIR O ARQUIVO !!!");
         return;
     }
-    liberaVertices(g , g->maxVertices);
+    inicializaGrafo(g , (*g)->maxVertices);
     char line[400];
     char primeiraLinha[200];
     char v1 , v2;
     int peso , num;
-
     while(fgets(line , 400 , arq) != NULL && strcmp(line, "}") != 0)
     {
         if(sscanf(line , "graph %[^ ] {" , primeiraLinha ) == 1)
         {
-            g->direcionado = false;
+            (*g)->direcionado = false;
         }
         else if (sscanf(line , "digraph %[^ ] {" , primeiraLinha ) == 1)
         {
-            g->direcionado = true;
+            (*g)->direcionado = true;
         }
         else if(sscanf(line , "\t%c -> %c [label = \"%d\" , weight = %d];" , &v1 , &v2, &peso, &num) == 4)
         {
-            if (buscarVertice(g , v1) == -1)  inserirVertice(g, v1);
-            if (buscarVertice(g , v2) == -1)  inserirVertice(g, v2);
-            conectar(g, v1, v2, peso);
+            if (buscarVertice(*g , v1) == -1)  inserirVertice(*g, v1);
+            if (buscarVertice(*g , v2) == -1)  inserirVertice(*g, v2);
+            conectar(*g, v1, v2, peso);
         }
         else if(sscanf(line , "\t%c -- %c [label = \"%d\" , weight = %d];" , &v1 , &v2, &peso, &num) == 4)
         {
-            if (buscarVertice(g , v1) == -1)  inserirVertice(g, v1);
-            if (buscarVertice(g , v2) == -1)  inserirVertice(g, v2);
-            conectar(g, v1, v2, peso);
+            if (buscarVertice(*g , v1) == -1)  inserirVertice(*g, v1);
+            if (buscarVertice(*g , v2) == -1)  inserirVertice(*g, v2);
+            conectar(*g, v1, v2, peso);
         }
-        else if(sscanf(line , "\t%c;" , &v1) == 1 && buscarVertice(g , v1) == -1)
-            inserirVertice(g, v1);
+        else if(sscanf(line , "\t%c;" , &v1) == 1 && buscarVertice(*g , v1) == -1)
+            inserirVertice(*g, v1);
     }
     printf("\n\n !!! Aquivo Lido com sucesso");
     fclose(arq);
@@ -376,22 +461,26 @@ void geraArquivoDOT(Grafo *g){
     for(int i = 0; i < g->maxVertices;i++)
         if(g->ListaVertices[i] != NULL)
             fprintf(arq , "\t%c;\n" , g->ListaVertices[i]->dado);
-    for(int i = 0; i < g->qtVertices; i++)
+    for(int i = 0; i < g->maxVertices; i++)
     {
-        atual = g->ListaVertices[i]->vizinho;
-        while (atual != NULL)
+        if (g->ListaVertices[i] != NULL)
         {
-            if(g->direcionado)
+            atual = g->ListaVertices[i]->vizinho;
+            while (atual != NULL)
             {
-                fprintf(arq, "\t%c -> %c [label = \"%d\" , weight = %d];\n", g->ListaVertices[i]->dado, atual->vizinho->dado, atual->peso, atual->peso); 
-            }
-            else 
-            {
-                j = buscarVertice(g , atual->vizinho->dado);
-                if(j > i)
-                    fprintf(arq, "\t%c -- %c [label = \"%d\" , weight = %d];\n", g->ListaVertices[i]->dado, atual->vizinho->dado, atual->peso, atual->peso); 
-            } 
-        }      
+                if(g->direcionado)
+                {
+                    fprintf(arq, "\t%c -> %c [label = \"%d\" , weight = %d];\n", g->ListaVertices[i]->dado, atual->vizinho->dado, atual->peso, atual->peso); 
+                }
+                else 
+                {
+                    j = buscarVertice(g , atual->vizinho->dado);
+                    if(j > i)
+                        fprintf(arq, "\t%c -- %c [label = \"%d\" , weight = %d];\n", g->ListaVertices[i]->dado, atual->vizinho->dado, atual->peso, atual->peso); 
+                }
+                atual = atual->prox;
+            }      
+        }
     }
                 
     fprintf(arq , "\n}");
