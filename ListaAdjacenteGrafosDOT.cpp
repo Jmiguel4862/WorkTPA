@@ -131,6 +131,7 @@ void menu(){
     LiberaGrafo(&grafo);
 }
 
+
 void liberaVertices(Grafo *g , int tamanho){
     Vizinho *del, *atual;
     for(int i  = 0; i < g->qtVertices;i++)
@@ -180,7 +181,6 @@ void LiberaGrafo(Grafo **g){
 int intRand(int num){
     return (rand() % num);
 }
-
 void printGrafo(Grafo *g){
     if(g == NULL || g->qtVertices == 0)
     {
@@ -227,7 +227,7 @@ int proximoVerticeIncompleto(Grafo *g , int atual){
             return alvo; 
     return -1;
 }
-
+ 
 void preencherGrafo(Grafo *g , DadosGrafo *dg){
     if(g == NULL || dg == NULL)
     {
@@ -358,17 +358,17 @@ void conectarUM(Grafo *g, int v1 , int v2 , int peso){
     if (atual == NULL)
         g->ListaVertices[v1]->vizinho = novo;
 
-    while(atual != NULL) 
-    {
-        if(atual->prox == NULL)
+    else while(atual != NULL) 
         {
-            atual->prox = novo;
-            break;
+            if(atual->prox == NULL)
+            {
+                atual->prox = novo;
+                break;
+            }
+            atual = atual->prox;
         }
-        atual = atual->prox;
-    }
     g->ListaVertices[v1]->grau++;
-    if(g->direcionado) g->ListaVertices[v2]->grau++;
+    g->ListaVertices[v2]->grau++;
 }
 
 void conectar(Grafo *g, int v1 , int v2 , int peso){
